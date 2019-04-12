@@ -1,5 +1,5 @@
 """ Test connection library."""
-from pathlib import PurePath, Path
+from pathlib import Path
 from unittest.mock import patch
 from unittest.mock import call
 from unittest.mock import MagicMock
@@ -12,15 +12,18 @@ from revlibs.connections import get
 
 
 # Environment variables are strings by default
-_TEST_CONNECTIONS = str(PurePath(__name__).parent / "resources" / "test_connections/")
-_TEST_EVIRONMENT = {"REVLIB_CONNECTIONS": _TEST_CONNECTIONS, "TEST_PASS": "IamAwizard"}
+TEST_CONNECTIONS = Path(__name__).parent / "resources" / "test_connections/"
+TEST_EVIRONMENT = {
+    "REVLIB_CONNECTIONS": TEST_CONNECTIONS.as_posix(),
+    "TEST_PASS": "IamAwizard",
+}
 
 
 class ConnectionMock(MagicMock):
     """ Mock connection objects."""
 
 
-@patch.dict("os.environ", _TEST_EVIRONMENT)
+@patch.dict("os.environ", TEST_EVIRONMENT)
 def test_simple_postgres():
     """ Test connection to postgres."""
     with patch("psycopg2.connect") as mocked_conn:
@@ -34,7 +37,7 @@ def test_simple_postgres():
     conn.close.assert_called()
 
 
-@patch.dict("os.environ", _TEST_EVIRONMENT)
+@patch.dict("os.environ", TEST_EVIRONMENT)
 def test_multi_server_postgres():
     """ First host:port fails, handle failover."""
     with patch("psycopg2.connect") as mocked_conn:
@@ -62,13 +65,13 @@ def test_multi_server_postgres():
     conn.close.assert_called()
 
 
-@patch.dict("os.environ", _TEST_EVIRONMENT)
+@patch.dict("os.environ", TEST_EVIRONMENT)
 def test_multi_server_exasol():
     """ Test passing exasol multiple connections."""
     with patch("pyexasol.connect") as mocked_conn:
-
         with get("exasol_multi_server") as conn:
             pass
+
     mocked_conn.assert_called_with(
         compression=True,
         dsn="127.0.0.1:5436,127.0.0.2:5437",
