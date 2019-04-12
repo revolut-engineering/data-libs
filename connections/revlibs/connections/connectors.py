@@ -30,6 +30,7 @@ class ConnectExasol:
                 user=self.config.user,
                 password=self.config.password,
                 fetch_dict=True,
+                fetch_mapper=pyexasol.exasol_mapper,
                 **params,
             )
         except pyexasol.exceptions.ExaError as err:

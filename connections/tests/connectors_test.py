@@ -79,6 +79,7 @@ def test_multi_server_exasol():
         password="IamAwizard",
         schema="s",
         user="test",
+        fetch_mapper=pyexasol.exasol_mapper
     )
     conn.close.assert_called()
 
