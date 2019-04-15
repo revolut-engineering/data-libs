@@ -42,6 +42,25 @@ environment variable.
 export REVLIB_CONNECTIONS=<path_to_different_file>
 ```
 
+#### Config
+
+Config parameters prefixed with `_env:TEST_ENV` will use the environment variable
+specified, in this case `TEST_ENV`. A default value can be written after a second colon
+`_env:TEST_ENV:prod` for example.
+
+#### Config parameters
+
+| **Parameter** | **Description** | **example** |
+| ------------- | --------------- | ----------- |
+| `name` | Unique name identifying database | `sandbox_db` |
+| `flavour` | Specifying the DB implementation | `postgres` |
+| `dsn` | Data source name | `<host:port>` |
+| `user` | Username for the database | `user` |
+| `password` | Password to the database | `_env:DATABASE_PASSWORD` |
+| `dbname` | Name of database (specific to postgres) | `countries` |
+| `schema` | Name of schema (specific to exasol) | `transactions` |
+| `params` | Optional parameters to provide the connection. | `params: {timeout: 5}` |
+
 #### An example of this file is provided below
 
 We can have multiple connections in a single file.
