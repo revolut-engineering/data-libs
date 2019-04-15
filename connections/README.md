@@ -45,8 +45,9 @@ export REVLIB_CONNECTIONS=<path_to_different_file>
 #### Config
 
 Config parameters prefixed with `_env:TEST_ENV` will use the environment variable
-specified, in this case `TEST_ENV`. A default value can be written after a second colon
-`_env:TEST_ENV:prod` for example.
+specified, in this case `TEST_ENV`.
+A default value can be specified after a second colon, for example:
+`_env:TEST_ENV:prod` will use `prod` if `TEST_ENV` is not set.
 
 #### Config parameters
 
