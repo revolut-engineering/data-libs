@@ -1,0 +1,6 @@
+- name: exasol_bad_dsn
+  flavour: exasol
+  dsn: bad_dsn:8888
+  user: test
+  password: _env:TEST_PASS
+  schema: s

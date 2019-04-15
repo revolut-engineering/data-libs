@@ -84,6 +84,14 @@ def test_multi_server_exasol():
     conn.close.assert_called()
 
 
+@patch.dict("os.environ", TEST_EVIRONMENT)
+def test_bad_dsn_exasol():
+    """ Test passing exasol a bad dsn."""
+    with pytest.raises(pyexasol.exceptions.ExaCommunicationError):
+        with get("exasol_bad_dsn"):
+            pass
+
+
 def test_disabled_connection():
     """ Disabled connections are not handled."""
     with pytest.raises(KeyError):

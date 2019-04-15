@@ -33,8 +33,16 @@ class ConnectExasol:
                 fetch_mapper=pyexasol.exasol_mapper,
                 **params,
             )
-        except pyexasol.exceptions.ExaError as err:
-            log.exception(err)
+        except pyexasol.exceptions.ExaCommunicationError:
+            log.error(
+                f"Could not connect to Exasol: Bad dsn [dsn={self.dsn}, user={self.config.user}]"
+            )
+            raise
+        except pyexasol.exceptions.ExaRequestError:
+            log.error(
+                f"Could not connect to Exasol: Wrong user or password [dsn={self.dsn}, user={self.config.user}]"
+            )
+            raise
         return self.connection
 
     def close(self):
