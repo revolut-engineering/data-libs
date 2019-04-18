@@ -11,67 +11,47 @@ This library aims to simplify common operations that might need to be performed 
  - A directory
  - An object of `List[dict]`
 
-## Standard Usage
+## Usage
 
-Say we have a configuration file `connections.yaml`
+Say we have a configuration file `animals.yaml`
 
 ```yaml
-# Postgres Example
-- name: sandboxdb
-  flavour: postgres
-  # We can specify multiple <host:port> combinations.
-  # To simplfy this you may also provide
-  # '127.0.0.1..3:8888' which will attempt sequential
-  # connections from '.1' -> '.3'
-  dsn: 127.0.0.1:8888,127.0.0.1:8889
-  user: postgres
-  # Specifying the environment variable
-  password: _env:SANDBOXDB_PASSWORD
-  dbname: countries
+- name: Zebra
+  speed: 13
+  lifespan: 20
+  diet: grass
 
 ---
 
-# Exasol example
-- name: bigdb
-  flavour: exasol
-  dsn: _env:BIG_DB_DSN
-  user: default_user
-  password: _env:BIGDB_PASSWORD
-  schema: events
+- name: Lion
+  speed: 23
+  lifespan: 32
+  diet: meat
 ```
 
 Then, with `revlibs.dicts` we can load the config as
 
 ```python
-import os
-
 from pathlib import Path
 from revlibs.dicts import Dicts
 
-HOME = os.environ['APP_DIR']
-path = Path() / HOME / "config/connections.yaml"
-
-loader = Dicts.from_path(path)
+loader = Dicts.from_path(Path("connections.yaml"))
 list(loader.items)
 ```
 
 This outputs
 
 ```python
-[{'__PATH__': '$APP_DIR/config/connections.yaml',
-  'dbname': 'countries',
-  'dsn': '127.0.0.1:8888,127.0.0.1:8889',
-  'flavour': 'postgres',
-  'name': 'sandboxdb',
-  'password': '_env:SANDBOXDB_PASSWORD',
-  'user': 'postgres'},
- {'__PATH__': '$APP_DIR/config/connections.yaml',
-  'dsn': '_env:BIG_DB_DSN',
-  'flavour': 'exasol',
-  'name': 'bigdb',
-  'password': '_env:BIGDB_PASSWORD',
-  'schema': 'events',
-  'user': 'default_user'}]
+[{'__PATH__': '/resolved/path/to/animals.yaml',
+  'diet': 'grass',
+  'lifespan': 20,
+  'name': 'Zebra',
+  'speed': 13},
+ {'__PATH__': '/resolved/path/to/animals.yaml',
+  'diet': 'meat',
+  'lifespan': 32,
+  'name': 'Lion',
+  'speed': 23}]
 ```
 
 ## Options
@@ -148,7 +128,7 @@ The items can be cast by a function or class
  Animal('A rat who weighs 1kg')]
 ```
 
-## Mapping and Keying
+## Keying
 
 Mapping and keying should be the last step in a pipeline, and is a substitute to calling `.items`, to signal the end of the loader method chaining.
 
@@ -182,11 +162,11 @@ For example
 And to enforce mapping
 
 ```python
-> def light(d):
+> def light_animals(d):
 >     return d.get("size", 100) < 100
 
 > Dicts.from_dicts(data, load_disabled=True) \ 
->     .filter(light) \ 
+>     .filter(light_animals) \ 
 >     .items_as(Animal) \ 
 >     .map_by(animal_size, default="_")
 
