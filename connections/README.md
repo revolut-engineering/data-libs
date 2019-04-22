@@ -35,11 +35,12 @@ If you would like to specify a different path.
 
 #### E.g:
 
-You may change the `"REVLIB_CONNECTIONS"`
-environment variable.
+You may specify a different config directory by passing it in the `get` method.
 
-```
-export REVLIB_CONNECTIONS=<path_to_different_file>
+```python
+path = "/home/sebastien/.connections/"
+with connections.get("sandboxdb", config_path=path) as conn:
+    conn.execute(query)
 ```
 
 #### Config

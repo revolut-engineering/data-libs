@@ -96,9 +96,9 @@ _CONNECTORS = {"exasol": ConnectExasol, "postgres": ConnectPostgres}
 
 
 @contextmanager
-def get(name):
+def get(name, **options):
     """ Grab a connection."""
-    cfg = config.load(name)
+    cfg = config.load(name, **options)
     try:
         obj = _CONNECTORS[cfg.flavour]
     except KeyError as err:

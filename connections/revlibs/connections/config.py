@@ -7,16 +7,20 @@ from revlibs.dicts import DictLoader
 
 
 _DEFAULT_DIRECTORY = Path.home() / ".revconnect/"
-_ENV_VAR_FOR_FILE = "REVLIB_CONNECTIONS"
 _PASSWORD_REQUIRED = (
     # Provide a meaningful message
     "Please ensure you have set the password as an environment variable"
 )
 
 
-def load(database):
-    """ Load the database connection configuration."""
-    loader = load_connection_settings()
+def load(database, **options):
+    """ Load the database connection configuration.
+
+    :param options: **kwargs, pass additional arguments.
+    """
+    directory = Path(options.get("config_path", _DEFAULT_DIRECTORY))
+
+    loader = load_connection_settings(directory)
     candidates = [
         item
         for item in loader.items
@@ -82,8 +86,7 @@ class Config:
         return result
 
 
-def load_connection_settings():
-    """ Retrieve connections from specified yaml."""
-    directory = Path(os.environ.get(_ENV_VAR_FOR_FILE, _DEFAULT_DIRECTORY))
+def load_connection_settings(directory):
+    """ Retrieve connection yaml from a specified directory."""
     loader = DictLoader.from_path(directory)
     return loader
