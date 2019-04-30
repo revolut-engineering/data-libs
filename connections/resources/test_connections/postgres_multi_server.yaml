@@ -1,0 +1,6 @@
+- name: postgres_multi_server
+  flavour: postgres
+  dsn: 127.0.0.1:5436,127.0.0.2:5436
+  user: test
+  password: _env:TEST_PASS
+  schema: s

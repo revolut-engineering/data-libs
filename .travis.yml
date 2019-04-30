@@ -1,12 +1,15 @@
 dist: xenial
+cache: pip
 language: python
-python: 3.7
+python:
+  - "3.6"
+  - "3.7"
+env:
+  - SUB_PACKAGE=dicts
+  - SUB_PACKAGE=logger
+  - SUB_PACKAGE=connections
 before_install:
   - cd $SUB_PACKAGE
-matrix:
-  include:
-    - name: "Test dicts"
-      env: SUB_PACKAGE=dicts
-    - name: "Test logger"
-      env: SUB_PACKAGE=logger
-script: pytest .
+install:
+  - pip install .
+script: pytest

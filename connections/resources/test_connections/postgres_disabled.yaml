@@ -1,0 +1,3 @@
+- name: postgres_disabled
+  disabled: true
+  flavour: postgres

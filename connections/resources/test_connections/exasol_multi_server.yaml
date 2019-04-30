@@ -1,0 +1,6 @@
+- name: exasol_multi_server
+  flavour: exasol
+  dsn: 127.0.0.1:5436,127.0.0.2:5437
+  user: test
+  password: _env:TEST_PASS
+  schema: s

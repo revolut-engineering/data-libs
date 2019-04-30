@@ -8,5 +8,5 @@ setup(
     py_modules=["revlibs.dicts"],
     python_requires=">=3.6",
     install_requires=["ruamel.yaml>=0.15.89"],
-    namescape_packages=["revlibs"],
+    namespace_packages=["revlibs"],
 )

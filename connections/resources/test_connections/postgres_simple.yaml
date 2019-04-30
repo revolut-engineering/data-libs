@@ -1,0 +1,6 @@
+- name: postgres_simple
+  flavour: postgres
+  dsn: 127.0.0.1:5436
+  user: test
+  password: _env:TEST_PASS
+  schema: s
