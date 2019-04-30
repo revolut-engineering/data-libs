@@ -31,7 +31,7 @@ class Dicts:
         dicts: Optional[List[Dict]] = None,
         skip_errors: bool = False,
         load_disabled: bool = False,
-        disabled_key: str = "disabled",
+        disabled_key: str = DISABLED_KEY,
     ):
         log.debug(f"Loading dicts from {path}")
 
@@ -157,14 +157,14 @@ class Dicts:
                 log.warning(f"Could not load {path}: {e}")
                 log.exception(e)
 
-    def items_as(self, type_: Callable[[Dict], Any]):
+    def items_as(self, f: Callable[[Dict], Any]):
         """Transform the Dicts to a class or by a function"""
-        self.__items: List[Any] = [type_(item) for item in self.__items]
+        self.__items: map = map(f, self.__items)
         return self
 
     def filter(self, predicate: Callable[[Any], bool]):
         """Filter the Dicts according to some predicate"""
-        self.__items: List[Any] = [item for item in self.__items if predicate(item)]
+        self.__items: filter = filter(predicate, self.__items)
         return self
 
     def __make_callable(
