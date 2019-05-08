@@ -3,7 +3,7 @@ import os
 import logging
 from pathlib import Path
 
-from revlibs.dicts import Dicts
+from revlibs.dicts import DictLoader
 
 
 _DEFAULT_DIRECTORY = Path.home() / ".revconnect/"
@@ -85,5 +85,5 @@ class Config:
 def load_connection_settings():
     """ Retrieve connections from specified yaml."""
     directory = Path(os.environ.get(_ENV_VAR_FOR_FILE, _DEFAULT_DIRECTORY))
-    loader = Dicts.from_path(directory)
+    loader = DictLoader.from_path(directory)
     return loader
