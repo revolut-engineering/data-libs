@@ -18,7 +18,7 @@ handlers:
         formatter: simple
         filename: "{LOG_FILE_LOCATION}"
         when: "{LOG_ROTATING_INTERVAL}"
-    slack: 
+    slack:
         username: "{LOG_SLACK_USER}"
         level: DEBUG
         fail_silent: true
