@@ -6,6 +6,14 @@ Base logging configuration. Includes the following out of the box:
 - writing to file, rotated every hour
 - writing to Google StackDriver, all fields, in json format
 
+## Install
+
+Install basic logger without additional handlers
+
+```
+pip install revlibs-logger
+```
+
 ## Usage
 
 ```python
@@ -41,6 +49,23 @@ log = get_logger(params={"LOG_FILE_LOCATION": "some_other_file.log",  "LOG_LEVEL
 
 ## Handlers
 
+Additional handlers can be specified when installing or as dependencies:
+
+```bash
+revlibs-logger[stackdriver,slack]==0.3.0
+```
+
+These handlers may be included when instantiating your application's logger
+
+```
+logger = get_logger(add_handlers=['console', 'file', 'slack', 'stackdriver'])
+```
+
+For more details on specific handlers see:
+
+- [Stackdriver logging](./README.md#stackdriver-logging)
+- [Slack logging](./README.md#slack-logging)
+
 ### Console
 
 Log levels are displayed colored. Default level is INFO.
@@ -66,7 +91,7 @@ It is also possible to write to slack, using logger called slack.
 You need to set **LOG_SLACK_TOKEN** and **DEFAULT_SLACK_CHANNEL** variables via _params_ or environment:
 
 ```python
-log = get_logger("slack", params={"DEFAULT_SLACK_CHANNEL": "errors", "LOG_SLACK_TOKEN": "<xxxxxxx>"})
+log = get_logger("slack", params={"DEFAULT_SLACK_CHANNEL": "errors", "LOG_SLACK_TOKEN": "<xxxxxxx>"}, add_handlers=['console', 'file', 'slack'])
 ```
 
 Additional properties:
