@@ -3,9 +3,23 @@ import tempfile
 import json
 import pytest
 from ruamel.yaml import YAML
-from revlibs.dicts import PATH_KEY, DEFAULT_PATH_KEY, DictLoader
+from revlibs.dicts import PATH_KEY, DEFAULT_PATH_KEY, Dicts
 
 yaml = YAML()
+
+
+class Animal:
+    def __init__(self, config):
+        self.animal = config.get("animal")
+        self.size = config.get("size")
+
+    def __repr__(self):
+        return f"Animal('A {self.animal} who weighs {self.size}kg')"
+
+    def __eq__(self, other):
+        if isinstance(self, other.__class__):
+            return self.animal == other.animal and self.size == other.size
+        return False
 
 
 def create_dir(num_files, dict_generator, extensions):
@@ -63,7 +77,7 @@ def create_dir(num_files, dict_generator, extensions):
 )
 def test_load_dicts(generator, num_files, expected_size, extensions):
     tmp_dir = create_dir(num_files, generator, extensions)
-    loader = DictLoader.from_path(tmp_dir, skip_errors=True)
+    loader = Dicts.from_path(tmp_dir, skip_errors=True)
     dicts = list(loader.items)
     assert len(dicts) == expected_size, "number of loaded files matches"
     for d in dicts:
@@ -78,8 +92,8 @@ def test_load_dicts(generator, num_files, expected_size, extensions):
 
 def test_to_dict_simple():
     a = [{"a": 1, PATH_KEY: "x"}]
-    loader = DictLoader.from_dicts(a)
-    out = loader.group_by_key(key="a")
+    loader = Dicts.from_dicts(a)
+    out = loader.map_by(key="a", default="_")
     assert isinstance(out, dict), "to_dict returns a dict"
     assert len(out) == 1
     assert out[a[0]["a"]] == a[0]
@@ -87,36 +101,59 @@ def test_to_dict_simple():
 
 def test_to_dict_transform():
     a = [{"a": "aa", "b": "bb", PATH_KEY: "x"}]
-    loader = DictLoader.from_dicts(a)
-    transformator = lambda d: d["b"]
-    out = loader.group_by_key(key="a", transformator=transformator)
+    loader = Dicts.from_dicts(a)
+    pick_b = lambda d: {"b": d["b"]}
+    out = loader.items_as(pick_b).map_by(key="b", default="_")
     assert isinstance(out, dict), "to_dict returns a dict"
     assert len(out) == 1
-    assert out[a[0]["a"]] == a[0]["b"]
+    assert out == {"bb": {"b": "bb"}}
 
 
 def test_group_by_unordered():
     a = [{PATH_KEY: "a"}, {PATH_KEY: "c"}, {PATH_KEY: "b"}, {PATH_KEY: "a"}]
-    loader = DictLoader.from_dicts(a)
-    out = loader.group_by_file()
+    loader = Dicts.from_dicts(a)
+    out = loader.key_by_file()
     assert len(out["a"]) == 2
 
 
 def test_duplicate():
     a = [{"name": 1, PATH_KEY: "x"}, {"name": 1, PATH_KEY: "y"}]
-    loader = DictLoader.from_dicts(a)
-    with pytest.raises(KeyError):
-        loader.group_by_key()
+    loader = Dicts.from_dicts(a)
+    with pytest.raises(ValueError):
+        loader.map_by(key="name", default="_")
 
 
-def test_duplicate_skip_errors():
-    a = [{"name": 1, PATH_KEY: "x"}, {"name": 1, PATH_KEY: "y"}]
-    try:
-        loader = DictLoader.from_dicts(a)
-        loader.group_by_key(allow_duplicates=True)
-    except KeyError:
-        pytest.fail("Exception raised despite skip_errors set")
-        # raise
+def test_filter():
+    loader = Dicts.from_dicts(
+        [
+            {"animal": "cat", "size": 100},
+            {"animal": "dog", "size": 100},
+            {"animal": "rat", "size": 1},
+        ]
+    )
+
+    animal = loader.filter(lambda d: d["animal"] == "rat").map_by("animal", "_")
+    assert animal == {"rat": {"animal": "rat", "size": 1}}
+
+
+def test_cast_then_key():
+
+    data = [
+        {"animal": "cat", "size": "100"},
+        {"animal": "dog", "size": "100"},
+        {"animal": "rat", "size": "1"},
+        {"animal": "bat", "size": "5", "disabled": True},
+    ]
+
+    def animal_size(animal: Animal):
+        return animal.size
+
+    result = Dicts.from_dicts(data).items_as(Animal).key_by(animal_size, "_")
+    assert result["1"] == [Animal({"animal": "rat", "size": "1"})]
+    assert result["100"] == [
+        Animal({"animal": "cat", "size": "100"}),
+        Animal({"animal": "dog", "size": "100"}),
+    ]
 
 
 def test_group_by_file():
@@ -126,11 +163,10 @@ def test_group_by_file():
         {"name": 2, PATH_KEY: "y"},
         {"name": 2},
     ]
-    loader = DictLoader.from_dicts(a)
-    out = dict(loader.group_by_file())
+    loader = Dicts.from_dicts(a)
+    out = dict(loader.key_by_file())
     assert out == {
         "x": [{"name": 1, PATH_KEY: "x"}],
         "y": [{"name": 1, PATH_KEY: "y"}, {"name": 2, PATH_KEY: "y"}],
         DEFAULT_PATH_KEY: [{"name": 2}],
     }
-

@@ -1,60 +1,177 @@
 # Dicts
 
-A library for loading json/yaml files from directories and single files.
+An API for manipulating `Dicts` where `Dicts = List[dict]`
+
+`Dicts` assumes you have a set of dictionaries which share a structure, such as a `jsonschema`.
+This library aims to simplify common operations that might need to be performed on lists of dictionaries.
+
+`Dicts` doesn't care where your data is your sourced from. You can load from
+
+ - A `json` or `yaml` file
+ - A directory
+ - An object of `List[dict]`
 
 ## Usage
 
+Say we have a configuration file `animals.yaml`
+
+```yaml
+- name: Zebra
+  speed: 13
+  lifespan: 20
+  diet: grass
+
+---
+
+- name: Lion
+  speed: 23
+  lifespan: 32
+  diet: meat
+```
+
+Then, with `revlibs.dicts` we can load the config as
+
 ```python
 from pathlib import Path
-from revlibs.dicts import DictLoader, PATH_KEY
-p = Path("revolut-datascience/infra/helios/config/tables")
-p = Path("../../revolut-datascience/infra/helios/config/tables")
+from revlibs.dicts import Dicts
 
-# You can also load a single file
-p = Path("revolut-datascience/infra/helios/config/tables/users.yaml")
+loader = Dicts.from_path(Path("connections.yaml"))
+list(loader.items)
+```
 
-# Json files are also supported
-p = Path("revolut-datascience/infra/helios/config/tables/users.json")
+This outputs
 
-# Instantiate the loader
-loader = DictLoader.from_path(p)
+```python
+[{'__PATH__': '/resolved/path/to/animals.yaml',
+  'diet': 'grass',
+  'lifespan': 20,
+  'name': 'Zebra',
+  'speed': 13},
+ {'__PATH__': '/resolved/path/to/animals.yaml',
+  'diet': 'meat',
+  'lifespan': 32,
+  'name': 'Lion',
+  'speed': 23}]
+```
 
-# By default, if yaml/json files are invalid, it will just warn and skip them.
-# Alternatively, you can ask the loader to fail in such case:
-loader = DictLoader.from_path(p, skip_errors=True)
+## Options
 
-# By default we skip yaml/json files which are disabled by having `disable: True`.
-# We can override this by passing load_disabled_entries = True:
-loader = DictLoader.from_path(p, load_disabled_entries=True)
+The loader can be configured, and the items can be manipulated in a variety of ways.
 
-# We can even override the disabled key
-loader = DictLoader.from_path(p, disabled_key='active', load_disabled_entries=True)
+```python
+> data = [
+    {"animal": "cat", "size": 100},
+    {"animal": "dog", "size": 100},
+    {"animal": "rat", "size": 1},
+    {"animal": "pig", "colour": "pink"},
+    {"animal": "bat", "size": 5, "disabled": True},
+]
+```
 
-# To access items, just access items :)
-# Each resulting dict also has an extra key "__PATH__", indicating the original file location
-loader.items
+Normal usage
 
-# If your file is guaranteed to have only one dict, you need to get it out of the list:
-loader.items[0]
+```python
+> Dicts.from_dicts(data).items
+[{'animal': 'cat', 'size': 100},
+ {'animal': 'dog', 'size': 100},
+ {"animal": "pig", "colour": "pink"},
+ {'animal': 'rat', 'size': 1}]
+```
 
-# This will give you a dict of all the dicts found under a given path
-loader.group_by_key()
+The loader can be forced to load disabled entries. 
 
-# You can transform the values from dict to any other object
-loader.group_by_key(transformator=Table.__init__)
+```python
+> Dicts.from_dicts(data, load_disabled=True).items
+[{'animal': 'cat', 'size': 100},
+ {'animal': 'dog', 'size': 100},
+ {'animal': 'rat', 'size': 1},
+ {'animal': 'pig', 'colour': 'pink'},
+ {'animal': 'bat', 'size': 5, 'disabled': True}]
+```
 
-# By default, the key 'name' is used. You can override it and specify either or key even an expression
-loader.group_by_key(key='id')
-loader.group_by_key(key=lambda d: d['id']+d['name'])
+Disabled entries are specified in the config file via the `disabled_key` argument.
 
-# If there are items with duplicate keys, it will throw an exception. However, we can override it
-# to only write a warning and not raise the exception:
-loader.group_by_key(key='id', allow_duplicates=True)
+```python
+> Dicts.from_dicts(data, disabled_key='colour').items
+[{'animal': 'cat', 'size': 100},
+ {'animal': 'dog', 'size': 100},
+ {'animal': 'rat', 'size': 1},
+ {'animal': 'bat', 'size': '5', 'disabled': True}]
+```
 
+The data can be filtered by some arbitrary predicate function
 
-# To group loaded items by file name, use group_by_file. This will group by __PATH__
-# and have a list of items for each:
-loader.group_by_file()
-# You can also specify the transformator
-loader.group_by_file(transformator=Table.__init__)
+```python
+> def colourless(d):
+>     return "colour" not in d
+
+> Dicts.from_dicts(data).filter(colourless).items
+[{'animal': 'cat', 'size': 100},
+ {'animal': 'dog', 'size': 100},
+ {'animal': 'rat', 'size': 1}]
+```
+
+The items can be cast by a function or class
+
+```python
+> class Animal:
+>     def __init__(self, kwargs):
+>         for k, v in kwargs.items():
+>             setattr(self, k, v)
+>
+>     def __repr__(self):
+>         return f"Animal('A {self.animal} who weighs {self.size}kg')"
+
+> Dicts.from_dicts(data).filter(colourless).items_as(Animal).items
+[Animal('A cat who weighs 100kg'),
+ Animal('A dog who weighs 100kg'),
+ Animal('A rat who weighs 1kg')]
+```
+
+## Keying
+
+Mapping and keying should be the last step in a pipeline, and is a substitute to calling `.items`, to signal the end of the loader method chaining.
+
+ - A key results in a `Dict[str, List[Any]]`
+ - A map results in a `Dict[str, Any]`
+
+This means that a map is a 1 - 2 - 1 mapping, between keys and objects, whilst keying a `Dicts` object will return a collection of objects that fit the key.
+
+For example
+
+```python
+> def animal_size(animal: Animal):
+>     return animal.size
+
+> Dicts.from_dicts(data) \
+>     .filter(colourless) \
+>     .items_as(Animal) \
+>     .key_by(animal_size, default="_")
+
+{
+    1: [
+        Animal('A rat who weighs 1kg')
+    ],
+    100: [
+        Animal('A cat who weighs 100kg'), 
+        Animal('A dog who weighs 100kg')
+    ]
+}
+```
+
+And to enforce mapping
+
+```python
+> def light_animals(d):
+>     return d.get("size", 100) < 100
+
+> Dicts.from_dicts(data, load_disabled=True) \ 
+>     .filter(light_animals) \ 
+>     .items_as(Animal) \ 
+>     .map_by(animal_size, default="_")
+
+{
+    1: Animal('A rat who weighs 1kg'), 
+    5: Animal('A bat who weighs 5kg')
+}
 ```
