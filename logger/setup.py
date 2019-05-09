@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="revlibs-logger",
-    version="0.3.0",
+    version="0.3.2",
     author="Demeter Sztanko",
     author_email="demeter.sztanko@revolut.com",
     packages=find_packages(),
@@ -12,7 +12,7 @@ setup(
     install_requires=[
         "pyaml>=18.11.0",
     ],
-    extra_requires={
+    extras_require={
         "slack": ["slacker-log-handler>=1.7.1"],
         "stackdriver": ["google-cloud-logging>=1.10.0"],
     },
