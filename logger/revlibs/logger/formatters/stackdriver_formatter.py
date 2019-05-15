@@ -13,7 +13,7 @@ def supported_keys() -> List[str]:
     """
     Get supported keys from the package resources
     """
-    data = get_data("logger", "resources/supported_keys")
+    data = get_data("revlibs.logger", "resources/supported_keys")
     if data:
         return data.decode("utf-8").splitlines()
 
@@ -44,7 +44,7 @@ class StackdriverJsonFormatter(logging.Formatter):
         record_dict = vars(record)
         text = record_dict.get("message", "")
 
-        out = {k: serialize(v) for k, v in record_dict if k in self._SUPPORTED_KEYS_}
+        out = {k: serialize(v) for k, v in record_dict.items() if k in self._SUPPORTED_KEYS_}
 
         return {"text": text, "params": out, "environment": self._enviroment_info_}
 
