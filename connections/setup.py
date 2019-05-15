@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="revlibs-connections",
-    version="0.0.5",
+    version="0.1.0",
     author="Demeter Sztanko",
     author_email="demeter.sztanko@revolut.com",
     packages=find_packages(),
