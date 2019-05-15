@@ -79,7 +79,7 @@ def test_multi_server_exasol():
         password="IamAwizard",
         schema="s",
         user="test",
-        fetch_mapper=pyexasol.exasol_mapper
+        fetch_mapper=pyexasol.exasol_mapper,
     )
     conn.close.assert_called()
 
@@ -87,7 +87,7 @@ def test_multi_server_exasol():
 @patch.dict("os.environ", TEST_EVIRONMENT)
 def test_bad_dsn_exasol():
     """ Test passing exasol a bad dsn."""
-    with pytest.raises(pyexasol.exceptions.ExaCommunicationError):
+    with pytest.raises(pyexasol.exceptions.ExaConnectionDsnError):
         with get("exasol_bad_dsn"):
             pass
 
