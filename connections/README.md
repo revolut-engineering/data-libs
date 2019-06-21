@@ -75,7 +75,7 @@ We can have multiple connections in a single file.
   # We can specify multiple <host:port> combinations.
   # To simplfy this you may also provide
   # '127.0.0.1..3:8888' which will attempt sequential
-  # connectiosn from '.1' -> '.3'
+  # connections from '.1' -> '.3'
   dsn: 127.0.0.1:8888,127.0.0.1:8889
   user: postgres
   # Specifying the environment variable
