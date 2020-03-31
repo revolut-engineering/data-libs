@@ -48,18 +48,8 @@ def test_multi_server_postgres():
 
     mocked_conn.assert_has_calls(
         [
-            call(
-                "host=127.0.0.1 port=5436",
-                dbname=None,
-                password="IamAwizard",
-                user="test",
-            ),
-            call(
-                "host=127.0.0.2 port=5436",
-                dbname=None,
-                password="IamAwizard",
-                user="test",
-            ),
+            call("host=127.0.0.1 port=5436", dbname=None, password="IamAwizard", user="test",),
+            call("host=127.0.0.2 port=5436", dbname=None, password="IamAwizard", user="test",),
         ]
     )
     conn.close.assert_called()
@@ -97,3 +87,14 @@ def test_disabled_connection():
     with pytest.raises(KeyError):
         with get("postgres_disabled") as connection:
             assert not connection
+
+
+@patch.dict("os.environ", TEST_EVIRONMENT)
+def test_failed_connection_postgres():
+    """ First and second host:port fail, an Exception is raised."""
+    with pytest.raises(Exception) as err:
+        with patch("psycopg2.connect") as mocked_conn:
+            mocked_conn.side_effect = [psycopg2.OperationalError, psycopg2.OperationalError]
+            with get("postgres_multi_server") as conn:
+                pass
+    assert str(err.value) == "Could not connect to postgres_multi_server"
