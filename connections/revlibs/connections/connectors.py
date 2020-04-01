@@ -85,7 +85,10 @@ class ConnectPostgres:
             except psycopg2.OperationalError as err:
                 log.exception(err)
                 continue
-        return self.connection
+        try:
+            return self.connection
+        except AttributeError:
+            raise Exception(f"Could not connect to {self.config.name}")
 
     def close(self):
         """ Close the connection."""
