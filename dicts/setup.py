@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="revlibs-dicts",
-    version="0.1.0",
+    version="0.1.1",
     author="Demeter Sztanko",
     author_email="demeter.sztanko@revolut.com",
     description="An API for manipulating lists of dictionaries.",

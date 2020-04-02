@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="revlibs-logger",
-    version="0.3.4",
+    version="0.3.5",
     author="Demeter Sztanko",
     author_email="demeter.sztanko@revolut.com",
     description="Base logging configuration.",
