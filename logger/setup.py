@@ -2,9 +2,11 @@ from setuptools import setup, find_packages
 
 setup(
     name="revlibs-logger",
-    version="0.3.4",
+    version="0.3.5",
     author="Demeter Sztanko",
     author_email="demeter.sztanko@revolut.com",
+    description="Base logging configuration.",
+    url="https://github.com/revolut-engineering/data-libs/tree/master/logger",
     packages=find_packages(),
     package_data={"logger": ["logging.yaml"]},
     include_package_data=True,
