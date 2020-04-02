@@ -6,7 +6,7 @@ setup(
     version="0.1.3",
     author="Demeter Sztanko",
     author_email="demeter.sztanko@revolut.com",
-    description="A utility to pre-configure connects regardless of type.",
+    description="A utility to pre-configure connections regardless of type.",
     url="https://github.com/revolut-engineering/data-libs/tree/master/connections",
     packages=find_packages(),
     python_requires=">=3.6",
