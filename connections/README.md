@@ -18,8 +18,15 @@ pip install revlibs-connections
 
 from revlibs import connections
 
+# Using context manager
 with connections.get("sandboxdb") as conn:
     conn.execute(query)
+
+# Using connector object
+connector = connections.get_connector("sandboxdb")
+conn = connector.get_connection()
+conn.execute(query)
+connector.close()
 ```
 
 ### Connections

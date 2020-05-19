@@ -1,116 +1,132 @@
-""" Standard connection interface."""
-import logging
-from contextlib import contextmanager
+"""Connectors classes"""
+from abc import ABC, abstractmethod
+from typing import Generator
 
 import psycopg2
 import pyexasol
 
-from revlibs.connections import config
+from revlibs.connections.config import Config
+from revlibs.connections.exceptions import ConnectionEstablishError, ConnectionParamsError
 
-log = logging.getLogger(__name__)
 
+class BaseConnector(ABC):
+    """Base class for connectors"""
 
-class ConnectExasol:
-    """ Bridge method of connecting and exasol."""
-
-    def __init__(self, cfg):
-        self.name = cfg.name
-        #: We follow the pyexasol convention of dsn.
-        self.dsn = cfg.dsn
+    def __init__(self, cfg: Config) -> None:
         self.config = cfg
+        self.connection = None
 
-    def connect(self):
-        """ Attempt to connect to exasol."""
-        schema = self.config.schema if ("schema" in self.config) else None
-        params = {"schema": schema, "compression": True}
-        params.update(self.config.params)
+    @staticmethod
+    @abstractmethod
+    def _connect(config: Config):
+        """Establish connection with database"""
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def _is_connection_closed(connection) -> bool:
+        """Check if connection with database closed already"""
+        pass
+
+    def is_connected(self) -> bool:
+        """Check if connection with database established and not closed"""
+        return bool(self.connection and not self._is_connection_closed(self.connection))
+
+    def get_connection(self):
+        """Open new DB connection or return already established if its not closed"""
+        if self.is_connected():
+            return self.connection
+        self.connection = self._connect(self.config)
+        return self.connection
+
+    def close(self) -> None:
+        """Close connection to database"""
+        if not self.connection:
+            return
+        self.connection.close()
+        self.connection = None
+
+
+class ExasolConnector(BaseConnector):
+    """Connector class for Exasol DB"""
+
+    @staticmethod
+    def _is_connection_closed(connection: pyexasol.ExaConnection) -> bool:
+        """Check if connection with database closed already"""
+        return connection.is_closed
+
+    @staticmethod
+    def _connect(config: Config) -> pyexasol.ExaConnection:
+        """Establish connection with exasol"""
+        params = {"compression": True}
+        if "schema" in config:
+            params["schema"] = config.schema
+        params.update(config.params)
+
         try:
-            self.connection = pyexasol.connect(
-                dsn=self.dsn,
-                user=self.config.user,
-                password=self.config.password,
+            return pyexasol.connect(
+                dsn=config.dsn,
+                user=config.user,
+                password=config.password,
                 fetch_dict=True,
                 fetch_mapper=pyexasol.exasol_mapper,
                 **params,
             )
-        except pyexasol.exceptions.ExaCommunicationError:
-            log.error(
-                f"Could not connect to Exasol: Bad dsn [dsn={self.dsn}, user={self.config.user}]"
-            )
-            raise
-        except pyexasol.exceptions.ExaRequestError:
-            log.error(
-                f"Could not connect to Exasol: Wrong user or password [dsn={self.dsn}, user={self.config.user}]"
-            )
-            raise
-        return self.connection
-
-    def close(self):
-        """ Close the connection."""
-        self.connection.close()
+        except pyexasol.exceptions.ExaConnectionDsnError as exc:
+            raise ConnectionEstablishError(config.name, reason="Bad dsn", dsn=config.dsn) from exc
+        except pyexasol.exceptions.ExaAuthError as exc:
+            raise ConnectionEstablishError(
+                config.name, reason="Authentication failed", dsn=config.dsn, user=config.user,
+            ) from exc
+        except pyexasol.exceptions.ExaConnectionFailedError as exc:
+            raise ConnectionEstablishError(
+                config.name, reason="Connection refused", dsn=config.dsn,
+            ) from exc
+        except pyexasol.exceptions.ExaError as exc:
+            raise ConnectionEstablishError(config.name, dsn=config.dsn) from exc
 
 
-class ConnectPostgres:
-    """ Bridges method of connecting and postgres."""
+class PostgresConnector(BaseConnector):
+    """Connector class for PostgreSQL DB"""
 
-    def __init__(self, cfg):
-        self.name = cfg.name
-        self.dsn = cfg.dsn
-        self.config = cfg
+    @staticmethod
+    def _is_connection_closed(connection: psycopg2.extensions.connection) -> bool:
+        """Check if connection with database closed already"""
+        return connection.closed
 
-    def _parse_dsn(self, data_source_name):
-        """ We need to parse the standard dsn string into
-        an acceptable format for postgres.
+    @staticmethod
+    def _parse_dsn(data_source_name: str) -> Generator[str, None, None]:
+        """Convert connection URI to key/value connection string.
 
-        'localhost:8888' -> 'host=localhost port=8888'
+        >>> list(PostgresConnector._parse_dsn('localhost:8888, 127.0.0.1:6543'))
+        ['host=localhost port=8888', 'host=127.0.0.1 port=6543']
         """
         dsns = data_source_name.split(",")
         for dsn in dsns:
-            host, port = dsn.split(":")
+            host, port = dsn.strip().split(":")
             yield f"host={host} port={port}"
 
-    def connect(self):
-        """ Attempt to connect to postgres."""
-        dbname = self.config.dbname if ("dbname" in self.config) else None
-        for data_source_name in self._parse_dsn(self.dsn):
+    @staticmethod
+    def _connect(config: Config) -> psycopg2.extensions.connection:
+        """Establish connection with postgres"""
+        dbname = config.dbname if "dbname" in config else None
+
+        connection, last_exception = None, None
+        for dsn in PostgresConnector._parse_dsn(config.dsn):
             try:
-                self.connection = psycopg2.connect(
-                    data_source_name,
-                    user=self.config.user,
-                    password=self.config.password,
+                connection = psycopg2.connect(
+                    dsn,
+                    user=config.user,
+                    password=config.password,
                     dbname=dbname,
-                    **self.config.params,
+                    **config.params,
                 )
-                break
-            except psycopg2.OperationalError as err:
-                log.exception(err)
-                continue
-        try:
-            return self.connection
-        except AttributeError:
-            raise Exception(f"Could not connect to {self.config.name}")
+            except psycopg2.Error as exc:
+                last_exception = exc
 
-    def close(self):
-        """ Close the connection."""
-        self.connection.close()
+        if not connection:
+            raise ConnectionEstablishError(
+                config.name, dsn=config.dsn, user=config.user, dbname=dbname,
+            ) from last_exception
 
-
-_CONNECTORS = {"exasol": ConnectExasol, "postgres": ConnectPostgres}
-
-
-@contextmanager
-def get(name):
-    """ Grab a connection."""
-    cfg = config.load(name)
-    try:
-        obj = _CONNECTORS[cfg.flavour]
-    except KeyError as err:
-        log.exception(err, f"unsupported database {cfg.flavour}")
-        raise
-
-    connector = obj(cfg)
-    if connector:
-        yield connector.connect()
-        connector.close()
-    else:
-        yield None
+        return connection
