@@ -82,6 +82,7 @@ def test_bad_dsn_exasol():
             pass
 
 
+@patch.dict("os.environ", TEST_EVIRONMENT)
 def test_disabled_connection():
     """ Disabled connections are not handled."""
     with pytest.raises(KeyError):
